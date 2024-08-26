@@ -1,0 +1,17 @@
+{
+    "language": "Solidity",
+    "sources": {
+        "test.sol": {
+            "content": "pragma solidity ^0.4.0; contract C { function f() public { } }"
+        }
+    },
+    "settings": {
+        "outputSelection": {
+            "*": {
+                "*": [
+                    "ABI"
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,528 @@
+Only in ./.reference/solidity: .git
+diff -r ./.reference/solidity/CMakeLists.txt ./solidity-0.4.0/CMakeLists.txt
+39,41d38
+< if (TESTS AND NOT EMSCRIPTEN)
+< 	add_subdirectory(test)
+< endif()
+Only in ./solidity-0.4.0: buil
+Only in ./solidity-0.4.0: build
+diff -r ./.reference/solidity/cmake/EthCompilerSettings.cmake ./solidity-0.4.0/cmake/EthCompilerSettings.cmake
+36c36
+< 	add_compile_options(-Werror)
+---
+> 	#add_compile_options(-Werror)
+diff -r ./.reference/solidity/cmake/scripts/buildinfo.cmake ./solidity-0.4.0/cmake/scripts/buildinfo.cmake
+24,29c24
+< if (EXISTS ${ETH_SOURCE_DIR}/prerelease.txt)
+< 	file(READ ${ETH_SOURCE_DIR}/prerelease.txt SOL_VERSION_PRERELEASE)
+< 	string(STRIP "${SOL_VERSION_PRERELEASE}" SOL_VERSION_PRERELEASE)
+< else()
+< 	string(TIMESTAMP SOL_VERSION_PRERELEASE "develop.%Y.%m.%d" UTC)
+< endif()
+---
+> string(STRIP SOL_VERSION_PRERELEASE "")
+36c31
+< 		COMMAND git --git-dir=${ETH_SOURCE_DIR}/.git --work-tree=${ETH_SOURCE_DIR} rev-parse HEAD
+---
+> 		COMMAND git --git-dir=${ETH_SOURCE_DIR}/../.git --work-tree=${ETH_SOURCE_DIR} rev-parse HEAD
+40c35
+< 		COMMAND git --git-dir=${ETH_SOURCE_DIR}/.git --work-tree=${ETH_SOURCE_DIR} diff HEAD --shortstat
+---
+> 		COMMAND git --git-dir=${ETH_SOURCE_DIR}/../.git --work-tree=${ETH_SOURCE_DIR} diff HEAD --shortstat
+59c54
+< set(SOL_VERSION_BUILDINFO "commit.${SOL_COMMIT_HASH}.${ETH_BUILD_PLATFORM}")
+---
+> set(SOL_VERSION_BUILDINFO "-debug")
+Only in ./solidity-0.4.0/libdevcore: JSON.h
+diff -r ./.reference/solidity/libdevcore/debugbreak.h ./solidity-0.4.0/libdevcore/debugbreak.h
+107c107
+< 		trap_instruction();
+---
+> 	//	trap_instruction();
+diff -r ./.reference/solidity/libevmasm/Assembly.cpp ./solidity-0.4.0/libevmasm/Assembly.cpp
+222,223c222,223
+< 				collection.append(
+< 					createJsonValue("PUSH [tag]", i.location().start, i.location().end, string(i.data())));
+---
+> //				collection.append(
+> //					createJsonValue("PUSH [tag]", i.location().start, i.location().end, string(i.data())));
+243,244c243,244
+< 			collection.append(
+< 				createJsonValue("tag", i.location().start, i.location().end, string(i.data())));
+---
+> 			//collection.append(
+> 			//	createJsonValue("tag", i.location().start, i.location().end, string(i.data())));
+diff -r ./.reference/solidity/liblll/Parser.cpp ./solidity-0.4.0/liblll/Parser.cpp
+52a53
+> 	/*
+74a76
+> 	*/
+diff -r ./.reference/solidity/libsolidity/interface/CompilerStack.cpp ./solidity-0.4.0/libsolidity/interface/CompilerStack.cpp
+25a26
+> #include <cstdio>
+37a39
+> #include <libsolidity/interface/ErrorReporter.h>
+45,46c47,48
+< CompilerStack::CompilerStack(ReadFileCallback const& _readFile):
+< 	m_readFile(_readFile), m_parseSuccessful(false) {}
+---
+> // CompilerStack::CompilerStack(ReadFileCallback const& _readFile):
+> // 	m_readFile(_readFile), m_parseSuccessful(false) {}
+207c209
+< bool CompilerStack::compile(bool _optimize, unsigned _runs)
+---
+> /*bool CompilerStack::compile(bool _optimize, unsigned _runs)
+219a222,227
+> */
+> bool CompilerStack::compile(bool _optimize, unsigned _runs, map<string, h160> const& _libraries)
+> {
+> 	if (!m_parseSuccessful)
+> 		if (!parse())
+> 			return false;
+220a229,245
+> //	m_optimize = _optimize;
+> //	m_optimizeRuns = _runs;
+> //	m_libraries = _libraries;
+> 
+> 	map<ContractDefinition const*, eth::Assembly const*> compiledContracts;
+> 	for (Source const* source: m_sourceOrder)
+> 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
+> 			if (auto contract = dynamic_cast<ContractDefinition const*>(node.get()))
+> 				// compileContract(*contract, compiledContracts);
+> 				compileContract(_optimize, _runs, *contract, compiledContracts);
+> 	this->link(_libraries);
+> 	// m_stackState = CompilationSuccessful;
+> 	printf("MAMMA MIA\n");
+> 	return true;
+> }
+> 
+> 
+432c457
+< 			ReadFileResult result{false, string("File not supplied initially.")};
+---
+> 			ReadFile::Result result{false, string("File not supplied initially.")};
+437c462
+< 				newSources[importPath] = result.contentsOrErrorMesage;
+---
+> 				newSources[importPath] = result.contentsOrErrorMessage;
+440a466
+> 				/*
+443a470
+> 				*/
+diff -r ./.reference/solidity/libsolidity/interface/CompilerStack.h ./solidity-0.4.0/libsolidity/interface/CompilerStack.h
+37a38,39
+> #include <libsolidity/interface/ReadFile.h>
+> #include <libsolidity/interface/ErrorReporter.h>
+88c90,93
+< 	explicit CompilerStack(ReadFileCallback const& _readFile = ReadFileCallback());
+---
+> 	explicit CompilerStack(ReadFile::Callback const& _readFile = ReadFile::Callback()):
+> 		m_readFile(_readFile),
+> 		m_errors(),
+> 		m_errorReporter(m_errors) {}
+116c121
+< 	bool compile(bool _optimize = false, unsigned _runs = 200);
+---
+> //	bool compile(bool _optimize = false, unsigned _runs = 200);
+120a126,131
+> 	bool compile(
+> 		bool _optimize = false,
+> 		unsigned _runs = 200,
+> 		std::map<std::string, h160> const& _libraries = std::map<std::string, h160>{}
+> 	);
+> 
+254c265
+< 	ReadFileCallback m_readFile;
+---
+> 	ReadFile::Callback m_readFile;
+264a276
+> 	ErrorReporter m_errorReporter;
+Only in ./solidity-0.4.0/libsolidity/interface: ErrorReporter.cpp
+Only in ./solidity-0.4.0/libsolidity/interface: ErrorReporter.h
+Only in ./solidity-0.4.0/libsolidity/interface: ReadFile.h
+diff -r ./.reference/solidity/libsolidity/interface/SourceReferenceFormatter.h ./solidity-0.4.0/libsolidity/interface/SourceReferenceFormatter.h
+55a56,65
+> 	static std::string formatExceptionInformation(
+> 		Exception const& _exception,
+> 		std::string const& _name,
+> 		ScannerFromSourceNameFun const& _scannerFromSourceName
+> 	)
+> 	{
+> 		std::ostringstream errorOutput;
+> 		printExceptionInformation(errorOutput, _exception, _name, _scannerFromSourceName);
+> 		return errorOutput.str();
+> 	}
+Only in ./solidity-0.4.0/libsolidity/interface: StandardCompiler.cpp
+Only in ./solidity-0.4.0/libsolidity/interface: StandardCompiler.h
+Only in ./.reference/solidity: lsp_testing.diff
+diff -r ./.reference/solidity/solc/CommandLineInterface.cpp ./solidity-0.4.0/solc/CommandLineInterface.cpp
+57a58
+> #include <libsolidity/interface/StandardCompiler.h>
+81a83
+> static string const g_strStandardJSON = "standard-json";
+82a85,86
+> static string const g_argStandardJSON = g_strStandardJSON;
+> 
+337a342,361
+> 
+> 
+> 		if (m_args.count(g_argStandardJSON))
+> 		{
+> 			printf("I build now?\n");
+> 			string input;
+> 			while (!cin.eof())
+> 			{
+> 				string tmp;
+> 				getline(cin, tmp);
+> 				input.append(tmp + "\n");
+> 			}
+> 			StandardCompiler compiler;
+> 			printf("I build now?\n");
+> 			cout << compiler.compile(input) << endl;
+> 			printf("I DONE BUILDING ?\n");
+> 			return;
+> 		}
+> 
+> 
+437a462,466
+> 			g_argStandardJSON.c_str(),
+> 			"Switch to Standard JSON input / output mode, ignoring all options."
+> 			"It reads from standard input and provides the result on the standard output."
+> 		)
+> 		(
+532c561
+< 	CompilerStack::ReadFileCallback fileReader = [this](string const& _path)
+---
+> 	ReadFile::Callback fileReader = [this](string const& _path)
+534,539c563
+< 		auto path = boost::filesystem::path(_path);
+< 		if (!boost::filesystem::exists(path))
+< 			return CompilerStack::ReadFileResult{false, "File not found."};
+< 		auto canonicalPath = boost::filesystem::canonical(path);
+< 		bool isAllowed = false;
+< 		for (auto const& allowedDir: m_allowedDirectories)
+---
+> 		try
+541,545c565,568
+< 			// If dir is a prefix of boostPath, we are fine.
+< 			if (
+< 				std::distance(allowedDir.begin(), allowedDir.end()) <= std::distance(canonicalPath.begin(), canonicalPath.end()) &&
+< 				std::equal(allowedDir.begin(), allowedDir.end(), canonicalPath.begin())
+< 			)
+---
+> 			auto path = boost::filesystem::path(_path);
+> 			auto canonicalPath = boost::filesystem::canonical(path);
+> 			bool isAllowed = false;
+> 			for (auto const& allowedDir: m_allowedDirectories)
+547,548c570,578
+< 				isAllowed = true;
+< 				break;
+---
+> 				// If dir is a prefix of boostPath, we are fine.
+> 				if (
+> 					std::distance(allowedDir.begin(), allowedDir.end()) <= std::distance(canonicalPath.begin(), canonicalPath.end()) &&
+> 					std::equal(allowedDir.begin(), allowedDir.end(), canonicalPath.begin())
+> 				)
+> 				{
+> 					isAllowed = true;
+> 					break;
+> 				}
+549a580,591
+> 			if (!isAllowed)
+> 				return ReadFile::Result{false, "File outside of allowed directories."};
+> 			else if (!boost::filesystem::exists(path))
+> 				return ReadFile::Result{false, "File not found."};
+> 			else if (!boost::filesystem::is_regular_file(canonicalPath))
+> 				return ReadFile::Result{false, "Not a valid file."};
+> 			else
+> 			{
+> 				auto contents = dev::contentsString(canonicalPath.string());
+> 				m_sourceCodes[path.string()] = contents;
+> 				return ReadFile::Result{true, contents};
+> 			}
+551,555c593
+< 		if (!isAllowed)
+< 			return CompilerStack::ReadFileResult{false, "File outside of allowed directories."};
+< 		else if (!boost::filesystem::is_regular_file(canonicalPath))
+< 			return CompilerStack::ReadFileResult{false, "Not a valid file."};
+< 		else
+---
+> 		catch (Exception const& _exception)
+557,559c595
+< 			auto contents = dev::contentsString(canonicalPath.string());
+< 			m_sourceCodes[path.string()] = contents;
+< 			return CompilerStack::ReadFileResult{true, contents};
+---
+> 			return ReadFile::Result{false, "Exception in read callback: " + boost::diagnostic_information(_exception)};
+560a597,600
+> 		catch (...)
+> 		{
+> 			return ReadFile::Result{false, "Unknown exception in read callback."};
+> 		}
+769c809
+< void CommandLineInterface::actOnInput()
+---
+> bool CommandLineInterface::actOnInput()
+771c811,813
+< 	if (m_onlyAssemble)
+---
+> 	if (m_args.count(g_argStandardJSON))
+> 		return true;
+> 	else if (m_onlyAssemble)
+776a819
+> 	return !__error;
+diff -r ./.reference/solidity/solc/CommandLineInterface.h ./solidity-0.4.0/solc/CommandLineInterface.h
+48c48
+< 	void actOnInput();
+---
+> 	bool actOnInput();
+diff -r ./.reference/solidity/solc/jsonCompiler.cpp ./solidity-0.4.0/solc/jsonCompiler.cpp
+2c2
+< 	This file is part of cpp-ethereum.
+---
+> 	This file is part of solidity.
+4c4
+< 	cpp-ethereum is free software: you can redistribute it and/or modify
+---
+> 	solidity is free software: you can redistribute it and/or modify
+9c9
+< 	cpp-ethereum is distributed in the hope that it will be useful,
+---
+> 	solidity is distributed in the hope that it will be useful,
+15c15
+< 	along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
+---
+> 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
+29a30
+> #include <libdevcore/JSON.h>
+37a39
+> #include <libsolidity/interface/StandardCompiler.h>
+52,56c54
+< string formatError(
+< 	Exception const& _exception,
+< 	string const& _name,
+< 	function<Scanner const&(string const&)> const& _scannerFromSourceName
+< )
+---
+> ReadFile::Callback wrapReadCallback(CStyleReadFileCallback _readCallback = nullptr)
+58,132c56
+< 	ostringstream errorOutput;
+< 	SourceReferenceFormatter::printExceptionInformation(errorOutput, _exception, _name, _scannerFromSourceName);
+< 	return errorOutput.str();
+< }
+< 
+< Json::Value functionHashes(ContractDefinition const& _contract)
+< {
+< 	Json::Value functionHashes(Json::objectValue);
+< 	for (auto const& it: _contract.interfaceFunctions())
+< 		functionHashes[it.second->externalSignature()] = toHex(it.first.ref());
+< 	return functionHashes;
+< }
+< 
+< Json::Value gasToJson(GasEstimator::GasConsumption const& _gas)
+< {
+< 	if (_gas.isInfinite || _gas.value > std::numeric_limits<Json::LargestUInt>::max())
+< 		return Json::Value(Json::nullValue);
+< 	else
+< 		return Json::Value(Json::LargestUInt(_gas.value));
+< }
+< 
+< Json::Value estimateGas(CompilerStack const& _compiler, string const& _contract)
+< {
+< 	Json::Value gasEstimates(Json::objectValue);
+< 	using Gas = GasEstimator::GasConsumption;
+< 	if (!_compiler.assemblyItems(_contract) && !_compiler.runtimeAssemblyItems(_contract))
+< 		return gasEstimates;
+< 	if (eth::AssemblyItems const* items = _compiler.assemblyItems(_contract))
+< 	{
+< 		Gas gas = GasEstimator::functionalEstimation(*items);
+< 		u256 bytecodeSize(_compiler.runtimeObject(_contract).bytecode.size());
+< 		Json::Value creationGas(Json::arrayValue);
+< 		creationGas[0] = gasToJson(gas);
+< 		creationGas[1] = gasToJson(bytecodeSize * eth::GasCosts::createDataGas);
+< 		gasEstimates["creation"] = creationGas;
+< 	}
+< 	if (eth::AssemblyItems const* items = _compiler.runtimeAssemblyItems(_contract))
+< 	{
+< 		ContractDefinition const& contract = _compiler.contractDefinition(_contract);
+< 		Json::Value externalFunctions(Json::objectValue);
+< 		for (auto it: contract.interfaceFunctions())
+< 		{
+< 			string sig = it.second->externalSignature();
+< 			externalFunctions[sig] = gasToJson(GasEstimator::functionalEstimation(*items, sig));
+< 		}
+< 		if (contract.fallbackFunction())
+< 			externalFunctions[""] = gasToJson(GasEstimator::functionalEstimation(*items, "INVALID"));
+< 		gasEstimates["external"] = externalFunctions;
+< 		Json::Value internalFunctions(Json::objectValue);
+< 		for (auto const& it: contract.definedFunctions())
+< 		{
+< 			if (it->isPartOfExternalInterface() || it->isConstructor())
+< 				continue;
+< 			size_t entry = _compiler.functionEntryPoint(_contract, *it);
+< 			GasEstimator::GasConsumption gas = GasEstimator::GasConsumption::infinite();
+< 			if (entry > 0)
+< 				gas = GasEstimator::functionalEstimation(*items, entry, *it);
+< 			FunctionType type(*it);
+< 			string sig = it->name() + "(";
+< 			auto paramTypes = type.parameterTypes();
+< 			for (auto it = paramTypes.begin(); it != paramTypes.end(); ++it)
+< 				sig += (*it)->toString() + (it + 1 == paramTypes.end() ? "" : ",");
+< 			sig += ")";
+< 			internalFunctions[sig] = gasToJson(gas);
+< 		}
+< 		gasEstimates["internal"] = internalFunctions;
+< 	}
+< 	return gasEstimates;
+< }
+< 
+< string compile(StringMap const& _sources, bool _optimize, CStyleReadFileCallback _readCallback)
+< {
+< 	Json::Value output(Json::objectValue);
+< 	Json::Value errors(Json::arrayValue);
+< 	CompilerStack::ReadFileCallback readCallback;
+---
+> 	ReadFile::Callback readCallback;
+140c64
+< 			CompilerStack::ReadFileResult result;
+---
+> 			ReadFile::Result result;
+145c69
+< 				result.contentsOrErrorMesage = "File not found.";
+---
+> 				result.contentsOrErrorMessage = "File not found.";
+150c74
+< 				result.contentsOrErrorMesage = string(contents_c);
+---
+> 				result.contentsOrErrorMessage = string(contents_c);
+156c80
+< 				result.contentsOrErrorMesage = string(error_c);
+---
+> 				result.contentsOrErrorMessage = string(error_c);
+162c86,142
+< 	CompilerStack compiler(readCallback);
+---
+> 	return readCallback;
+> }
+> 
+> Json::Value functionHashes(ContractDefinition const& _contract)
+> {
+> 	Json::Value functionHashes(Json::objectValue);
+> 	for (auto const& it: _contract.interfaceFunctions())
+> 		functionHashes[it.second->externalSignature()] = toHex(it.first.ref());
+> 	return functionHashes;
+> }
+> 
+> /// Translates a gas value as a string to a JSON number or null
+> Json::Value gasToJson(Json::Value const& _value)
+> {
+> 	if (_value.isObject())
+> 	{
+> 		Json::Value ret = Json::objectValue;
+> 		for (auto const& sig: _value.getMemberNames())
+> 			ret[sig] = gasToJson(_value[sig]);
+> 		return ret;
+> 	}
+> 
+> 	if (_value == "infinite")
+> 		return Json::Value(Json::nullValue);
+> 
+> 	u256 value(_value.asString());
+> 	if (value > std::numeric_limits<Json::LargestUInt>::max())
+> 		return Json::Value(Json::nullValue);
+> 	else
+> 		return Json::Value(Json::LargestUInt(value));
+> }
+> 
+> Json::Value estimateGas(CompilerStack const& _compiler, string const& _contract)
+> {
+> 	// Json::Value estimates = _compiler.gasEstimates(_contract);
+> 	Json::Value output(Json::objectValue);
+> 	/*
+> 	if (estimates["creation"].isObject())
+> 	{
+> 		Json::Value creation(Json::arrayValue);
+> 		creation[0] = gasToJson(estimates["creation"]["executionCost"]);
+> 		creation[1] = gasToJson(estimates["creation"]["codeDepositCost"]);
+> 		output["creation"] = creation;
+> 	}
+> 	else
+> 		output["creation"] = Json::objectValue;
+> 	output["external"] = gasToJson(estimates.get("external", Json::objectValue));
+> 	output["internal"] = gasToJson(estimates.get("internal", Json::objectValue));
+> 	*/
+> 	return output;
+> }
+> 
+> string compile(StringMap const& _sources, bool _optimize, CStyleReadFileCallback _readCallback)
+> {
+> 	Json::Value output(Json::objectValue);
+> 	Json::Value errors(Json::arrayValue);
+> 	CompilerStack compiler(wrapReadCallback(_readCallback));
+172c152
+< 			errors.append(formatError(
+---
+> /*			errors.append(SourceReferenceFormatter::formatExceptionInformation(
+176c156
+< 			));
+---
+> 			));*/
+182c162
+< 		errors.append(formatError(error, error.typeName(), scannerFromSourceName));
+---
+> 		// errors.append(SourceReferenceFormatter::formatExceptionInformation(error, error.typeName(), scannerFromSourceName));
+186c166
+< 		errors.append(formatError(exception, "Compiler error", scannerFromSourceName));
+---
+> 		// errors.append(SourceReferenceFormatter::formatExceptionInformation(exception, "Compiler error (" + exception.lineInfo() + ")", scannerFromSourceName));
+190c170
+< 		errors.append(formatError(exception, "Internal compiler error", scannerFromSourceName));
+---
+> 		// errors.append(SourceReferenceFormatter::formatExceptionInformation(exception, "Internal compiler error (" + exception.lineInfo() + ")", scannerFromSourceName));
+191a172,176
+> /*	catch (UnimplementedFeatureError const& exception)
+> 	{
+> 		// errors.append(SourceReferenceFormatter::formatExceptionInformation(exception, "Unimplemented feature (" + exception.lineInfo() + ")", scannerFromSourceName));
+> 	}
+> */
+212c197
+< 				contractData["interface"] = compiler.interface(contractName);
+---
+> 				contractData["interface"] = dev::jsonCompactPrint(compiler.interface(contractName));
+215a201
+> 			//	contractData["metadata"] = compiler.onChainMetadata(contractName);
+240a227
+> 				/*
+242c229
+< 					errors.append(formatError(
+---
+> 					errors.append(SourceReferenceFormatter::formatExceptionInformation(
+246a234
+> 				*/
+273c261
+< 		return Json::FastWriter().write(output);
+---
+> 		return dev::jsonCompactPrint(output);
+291c279
+< 		return Json::FastWriter().write(output);
+---
+> 		return dev::jsonCompactPrint(output);
+310a299,305
+> 
+> string compileStandardInternal(string const& _input, CStyleReadFileCallback _readCallback = nullptr)
+> {
+> 	StandardCompiler compiler(wrapReadCallback(_readCallback));
+> 	return compiler.compile(_input);
+> }
+> 
+331a327,331
+> 	return s_outputBuffer.c_str();
+> }
+> extern char const* compileStandard(char const* _input, CStyleReadFileCallback _readCallback)
+> {
+> 	s_outputBuffer = compileStandardInternal(_input, _readCallback);
+334c334
+< }
+---
+> }
+\ No newline at end of file
