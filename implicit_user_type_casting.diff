@@ -1,0 +1,71 @@
+diff --git a/libsolidity/ast/Types.cpp b/libsolidity/ast/Types.cpp
+index 028b76673..1e920310e 100644
+--- a/libsolidity/ast/Types.cpp
++++ b/libsolidity/ast/Types.cpp
+@@ -617,6 +617,11 @@ BoolResult IntegerType::isImplicitlyConvertibleTo(Type const& _convertTo) const
+ 	{
+ 		FixedPointType const& convertTo = dynamic_cast<FixedPointType const&>(_convertTo);
+ 		return maxValue() <= convertTo.maxIntegerValue() && minValue() >= convertTo.minIntegerValue();
++	} 
++	else if (_convertTo.category() == Category::UserDefinedValueType) {
++		// Treat it as if we used the underlying type directly.
++		UserDefinedValueType const& underlyingType = dynamic_cast<UserDefinedValueType const&>(_convertTo);
++		return isImplicitlyConvertibleTo(underlyingType.underlyingType());
+ 	}
+ 	else
+ 		return false;
+@@ -2659,6 +2664,22 @@ Type const& UserDefinedValueType::underlyingType() const
+ 	return *type;
+ }
+ 
++BoolResult UserDefinedValueType::isImplicitlyConvertibleTo(Type const& _convertTo) const
++{
++	Type const& underlyingType = *m_definition.underlyingType()->annotation().type;
++
++	if (_convertTo.category() == Category::Integer)
++	{
++		return _convertTo.isImplicitlyConvertibleTo(underlyingType);
++	}
++	else if (_convertTo.category() == Category::FixedPoint)
++	{
++		return _convertTo.isImplicitlyConvertibleTo(underlyingType);
++	} 
++	else
++		return *this == _convertTo;
++}
++
+ Declaration const* UserDefinedValueType::typeDefinition() const
+ {
+ 	return &m_definition;
+diff --git a/libsolidity/ast/Types.h b/libsolidity/ast/Types.h
+index 3ab4a1d97..3c30c3d13 100644
+--- a/libsolidity/ast/Types.h
++++ b/libsolidity/ast/Types.h
+@@ -1156,6 +1156,7 @@ public:
+ 	bool canBeStored() const override { return underlyingType().canBeStored(); }
+ 	u256 storageSize() const override { return underlyingType().storageSize(); }
+ 	unsigned storageBytes() const override { return underlyingType().storageBytes(); }
++	BoolResult isImplicitlyConvertibleTo(Type const&) const override;
+ 
+ 	bool isValueType() const override { return true; }
+ 	bool nameable() const override
+diff --git a/scripts/build.sh b/scripts/build.sh
+index 6edd60bd9..9123c0d37 100755
+--- a/scripts/build.sh
++++ b/scripts/build.sh
+@@ -17,10 +17,10 @@ fi
+ mkdir -p "${BUILDDIR}"
+ cd "${BUILDDIR}"
+ 
+-cmake .. -DCMAKE_BUILD_TYPE="$BUILD_TYPE" "${@:2}"
++cmake .. -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DUSE_Z3=OFF "${@:2}"
+ make -j2
+ 
+-if [[ "${CI}" == "" ]]; then
+-	echo "Installing ..."
+-	sudo make install
+-fi
++#if [[ "${CI}" == "" ]]; then
++#	echo "Installing ..."
++#	sudo make install
++#fi
