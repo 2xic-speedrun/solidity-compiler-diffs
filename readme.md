@@ -9,8 +9,31 @@ cmake .. -DUSE_Z3=OFF && make
 
 You might need to update `buildinfo.cmake` after such a change depending on what your are doing.
 
+## Local lsp
+```bash
+./scripts/build.sh  && cat ../lsp_example.json |  build/solc/solc  --lspio 
+```
+
+Content of the `lsp_example.json` should be a lsp command.
+
+```json
+{
+	"jsonrpc": "2.0",
+	"id": 1,
+	"method": "textDocument/didOpen",
+	"params": {
+		
+	}
+}
+```
+
+
 ## Project brining back standard json to older versions of solc
 Can I bring the standard JSON interface to the people ? 
+
+```bash
+sudo apt-get install libjsoncpp-dev
+```
 
 ```bash
 cat ../../standard_json_example.json | ./solc/solc --standard-json 
