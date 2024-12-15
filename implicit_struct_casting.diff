@@ -1,0 +1,131 @@
+diff --git a/libsolidity/ast/Types.cpp b/libsolidity/ast/Types.cpp
+index 028b76673..c5fda5859 100644
+--- a/libsolidity/ast/Types.cpp
++++ b/libsolidity/ast/Types.cpp
+@@ -2180,6 +2180,11 @@ Type const* StructType::encodingType() const
+ 	return TypeProvider::uint256();
+ }
+ 
++struct Item {
++	StructDefinition const *a;
++	StructDefinition const *b;
++};
++
+ BoolResult StructType::isImplicitlyConvertibleTo(Type const& _convertTo) const
+ {
+ 	if (_convertTo.category() != category())
+@@ -2190,7 +2195,84 @@ BoolResult StructType::isImplicitlyConvertibleTo(Type const& _convertTo) const
+ 		return false;
+ 	if (convertTo.location() == DataLocation::CallData && location() != convertTo.location())
+ 		return false;
+-	return this->m_struct == convertTo.m_struct;
++	
++	// Solc doesn't allow implicit conversation between two structs unless they have the same astId, but this is a workaround for that.
++	StructDefinition const& currentMember = structDefinition();
++	StructDefinition const& convertToMembers = dynamic_cast<StructType const&>(convertTo).structDefinition();
++
++	bool isSameStruct = true;
++	auto val = Item{&currentMember, &convertToMembers};
++	util::BreadthFirstSearch<Item*> breadthFirstSearch{
++		{&val},
++	};
++
++	breadthFirstSearch.run(
++		[&](Item const* _struct, auto&& _addChild)
++		{
++			auto const getType = [](auto member) {
++				Type const* memberType = member->annotation().type;
++				solAssert(memberType, "");			
++				return memberType;
++			};
++
++			auto bfsMemberCurrent = _struct->a;
++			auto bfsMemberConvertTo = _struct->b;
++
++			if (!bfsMemberCurrent || !bfsMemberConvertTo) {
++				isSameStruct = false;
++				breadthFirstSearch.abort();
++				return;
++			}
++
++			auto membersA = bfsMemberCurrent->members();
++			auto membersB = bfsMemberConvertTo->members();
++
++			if (membersA.size() != membersB.size()) {
++				isSameStruct = false;
++				breadthFirstSearch.abort();
++			} else {
++				for (size_t i = 0; i < membersA.size() - 1; ++i) {
++					auto currentMember = membersA[i];
++					auto convertTomember = membersB[i];
++
++					auto const* currentMemberType = getType(currentMember);
++					auto const* convertToMemberType = getType(convertTomember);
++
++					if (currentMemberType->category() != convertToMemberType->category() && !(
++						currentMemberType->isImplicitlyConvertibleTo(*convertToMemberType)
++					)) {
++						isSameStruct = false;
++						breadthFirstSearch.abort();
++					//	printf("%i !== %i\n", currentMemberType->category(), convertToMemberType->category());
++					} else {
++						if (auto aDef = dynamic_cast<StructType const*>(currentMemberType)) {
++							auto bDef = (dynamic_cast<StructType const*>(convertToMemberType));
++
++							if (aDef && bDef){
++								auto const *aDefMember = &aDef->structDefinition();
++								auto const *bDefMember = &bDef->structDefinition();
++								auto val = Item{
++									aDefMember, 
++									bDefMember,
++								};
++								if (aDefMember->members().size() == bDefMember->members().size()){
++									_addChild(&val);
++								} else {
++									isSameStruct = false;
++									breadthFirstSearch.abort();	
++								}
++							} else {
++								isSameStruct = false;
++								breadthFirstSearch.abort();	
++							}
++						}
++					}
++				}
++			}
++		});
++
++	return isSameStruct;
++
+ }
+ 
+ std::string StructType::richIdentifier() const
+diff --git a/libsolidity/codegen/YulUtilFunctions.cpp b/libsolidity/codegen/YulUtilFunctions.cpp
+index 9d1929fe1..ee9b070b1 100644
+--- a/libsolidity/codegen/YulUtilFunctions.cpp
++++ b/libsolidity/codegen/YulUtilFunctions.cpp
+@@ -3523,7 +3523,7 @@ std::string YulUtilFunctions::conversionFunction(Type const& _from, Type const&
+ 			solAssert(toCategory == Type::Category::Struct, "");
+ 			auto const& fromStructType = dynamic_cast<StructType const &>(_from);
+ 			auto const& toStructType = dynamic_cast<StructType const &>(_to);
+-			solAssert(fromStructType.structDefinition() == toStructType.structDefinition(), "");
++			solAssert(fromStructType.isImplicitlyConvertibleTo(toStructType), "");
+ 
+ 			if (fromStructType.location() == toStructType.location() && toStructType.isPointer())
+ 				body = "converted := value";
+diff --git a/scripts/build.sh b/scripts/build.sh
+index 6edd60bd9..3ed26f3cb 100755
+--- a/scripts/build.sh
++++ b/scripts/build.sh
+@@ -20,7 +20,7 @@ cd "${BUILDDIR}"
+ cmake .. -DCMAKE_BUILD_TYPE="$BUILD_TYPE" "${@:2}"
+ make -j2
+ 
+-if [[ "${CI}" == "" ]]; then
+-	echo "Installing ..."
+-	sudo make install
+-fi
++#if [[ "${CI}" == "" ]]; then
++#	echo "Installing ..."
++#	sudo make install
++#fi

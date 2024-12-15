@@ -7,7 +7,7 @@ After applying a patch go into the `solidity` folder and run.
 ./scripts/build.sh
 ```
 
-## Implicit casting.
+## Implicit casting for user defined types
 Solidity doesn't allow you to do the following
 
 ```solidity
@@ -28,6 +28,35 @@ To bypass just apply the patch and then compile
 ```bash
 ./generate_implicit_user_type_casting.sh apply
 ```
+
+## Implicit casting of structs
+Similarly to above, the following is not allowed in solc.
+
+```solidity
+struct A {
+    address value;
+}
+
+struct B {
+    address value;
+}
+
+contract Example {
+    function cast(A memory test) internal returns (B memory) {
+        return test;
+    }
+
+    function cast(B memory test) internal returns (A memory) {
+        return test;
+    }
+}
+```
+
+To bypass just apply the patch and then compile
+```bash
+./generate_implicit_struct_casting.sh apply
+```
+
 
 ## Backporting standard JSON interface
 ```bash
