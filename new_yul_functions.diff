@@ -1,0 +1,36 @@
+diff --git a/libyul/backends/evm/EVMDialect.cpp b/libyul/backends/evm/EVMDialect.cpp
+index 6a3b34f97..74011a0b0 100644
+--- a/libyul/backends/evm/EVMDialect.cpp
++++ b/libyul/backends/evm/EVMDialect.cpp
+@@ -210,6 +210,15 @@ std::map<YulString, BuiltinFunctionForEVM> createBuiltins(langutil::EVMVersion _
+ 			builtins.emplace(createEVMFunction(_evmVersion, name, opcode));
+ 	}
+ 
++	builtins.emplace(createFunction("jumpdest", 0, 0, SideEffects{}, {}, [](
++		FunctionCall const& _call,
++		AbstractAssembly& _assembly,
++		BuiltinContext&
++	) {
++		yulAssert(_call.arguments.size() == 0, "");
++		_assembly.appendInstruction(evmasm::Instruction::JUMPDEST);
++	}));
++
+ 	if (_objectAccess)
+ 	{
+ 		builtins.emplace(createFunction("linkersymbol", 1, 1, SideEffects{}, {LiteralKind::String}, [](
+diff --git a/scripts/build.sh b/scripts/build.sh
+index 6edd60bd9..3ed26f3cb 100755
+--- a/scripts/build.sh
++++ b/scripts/build.sh
+@@ -20,7 +20,7 @@ cd "${BUILDDIR}"
+ cmake .. -DCMAKE_BUILD_TYPE="$BUILD_TYPE" "${@:2}"
+ make -j2
+ 
+-if [[ "${CI}" == "" ]]; then
+-	echo "Installing ..."
+-	sudo make install
+-fi
++#if [[ "${CI}" == "" ]]; then
++#	echo "Installing ..."
++#	sudo make install
++#fi

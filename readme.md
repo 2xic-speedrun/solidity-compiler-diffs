@@ -1,5 +1,4 @@
-solc compiler fun. Collection of some personal patches.
-
+solc compiler fun. Collection of some personal patches, mostly to explore various part of the [solc codebase](https://github.com/ethereum/solidity). 
 
 ### Compiling
 After applying a patch go into the `solidity` folder and run.
@@ -57,6 +56,14 @@ To bypass just apply the patch and then compile
 ./generate_implicit_struct_casting.sh apply
 ```
 
+## Adding new yul functions
+See the `new_yul_functions.diff` which adds a `jumpdest` yul function. This obviously isn't useful for anything special without a `jump` function also (and also `pc`) :D. 
+
+It was suppringlsy easy to add a new function.
+
+```bash
+./generate_new_yul_functions.sh apply
+```
 
 ## Backporting standard JSON interface
 ```bash
