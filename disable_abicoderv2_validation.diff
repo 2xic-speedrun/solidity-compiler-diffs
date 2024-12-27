@@ -1,8 +1,12 @@
 diff --git a/libsolidity/codegen/ABIFunctions.cpp b/libsolidity/codegen/ABIFunctions.cpp
-index 474848760..91816353e 100644
+index 474848760..e1ddc678c 100644
 --- a/libsolidity/codegen/ABIFunctions.cpp
 +++ b/libsolidity/codegen/ABIFunctions.cpp
-@@ -1120,7 +1120,7 @@ std::string ABIFunctions::abiDecodingFunctionValueType(Type const& _type, bool _
+@@ -1117,10 +1117,11 @@ std::string ABIFunctions::abiDecodingFunctionValueType(Type const& _type, bool _
+ 		_type.identifier() +
+ 		(_fromMemory ? "_fromMemory" : "");
+ 	return createFunction(functionName, [&]() {
++		// TODO: Make this depend on whether v2 or v1 is in use.
  		Whiskers templ(R"(
  			function <functionName>(offset, end) -> value {
  				value := <load>(offset)

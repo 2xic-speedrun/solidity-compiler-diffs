@@ -1,4 +1,4 @@
-solc compiler fun. Collection of some personal patches, mostly to explore various part of the [solc codebase](https://github.com/ethereum/solidity). 
+solc compiler fun. Collection of some personal patches, mostly as a way to explore various part of the [solc codebase](https://github.com/ethereum/solidity). 
 
 ### Compiling
 After applying a patch go into the `solidity` folder and run.
@@ -28,15 +28,6 @@ To bypass just apply the patch and then compile
 ./generate_implicit_user_type_casting.sh apply
 ```
 
-## Fixing issue with abi decoder
-I have this [open issue](https://github.com/ethereum/solidity/issues/15562) and was wondering how hard it would be to have some workaround (doesn't need to be a super clean one).
-
-So the issue is in the IR generation and not the actual optimization step of the IR, I disabled all the optimization steps and it still generate invalid code. So we go into the `IRGeneratorForStatements.cpp` and I think the issue is inside there somewhere with the decode function.
-
-Messing around with the generated IR code, we can remove the cleanup and revert functions (`validator_revert_t_uint128`), but we still don't get the full output out. Actually, if we just change `cleanup_t_uint128` to not do the `and` we get the correct output out.
-
-Actually, I can just remove the validator code.
-
 ## Implicit casting of structs
 Similarly to above, the following is not allowed in solc.
 
@@ -65,10 +56,19 @@ To bypass just apply the patch and then compile
 ./generate_implicit_struct_casting.sh apply
 ```
 
-## Adding new yul functions
-See the `new_yul_functions.diff` which adds a `jumpdest` yul function. This obviously isn't useful for anything special without a `jump` function also (and also `pc`) :D. 
+## Fixing issue with abi decoder
+I have this [open issue](https://github.com/ethereum/solidity/issues/15562) and was wondering how hard it would be to have some workaround (doesn't need to be a super clean one).
 
-It was suppringlsy easy to add a new function.
+Actually, I can just remove the validator code.
+
+```bash
+./disable_abicoderv2_validation.sh apply
+```
+
+## Adding new yul functions
+See the `new_yul_functions.diff` which adds a `jumpdest` yul function. This obviously isn't useful for anything special without a `jump` function also (and also `pc`) :D, but was done to see how easy / hard it would be to add custom functions to the yul language.
+
+It was surprisingly easy to add a new function.
 
 ```bash
 ./generate_new_yul_functions.sh apply
@@ -79,7 +79,7 @@ It was suppringlsy easy to add a new function.
 ./generate_standard_jsons_diff.sh apply
 ```
 
-Will give you the standard JSON for Solc version 0.4.0v (originally introduced in version 0.4.13).
+Will give you the standard JSON for Solc version 0.4.0v (originally introduced in version 0.4.13) with some caveats.
 
 ```bash
 cat ../standard_json_example.json | ./build/solc/solc --standard-json
