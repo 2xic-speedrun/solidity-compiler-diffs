@@ -28,6 +28,15 @@ To bypass just apply the patch and then compile
 ./generate_implicit_user_type_casting.sh apply
 ```
 
+## Fixing issue with abi decoder
+I have this [open issue](https://github.com/ethereum/solidity/issues/15562) and was wondering how hard it would be to have some workaround (doesn't need to be a super clean one).
+
+So the issue is in the IR generation and not the actual optimization step of the IR, I disabled all the optimization steps and it still generate invalid code. So we go into the `IRGeneratorForStatements.cpp` and I think the issue is inside there somewhere with the decode function.
+
+Messing around with the generated IR code, we can remove the cleanup and revert functions (`validator_revert_t_uint128`), but we still don't get the full output out. Actually, if we just change `cleanup_t_uint128` to not do the `and` we get the correct output out.
+
+Actually, I can just remove the validator code.
+
 ## Implicit casting of structs
 Similarly to above, the following is not allowed in solc.
 
