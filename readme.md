@@ -85,6 +85,24 @@ Will give you the standard JSON for Solc version 0.4.0v (originally introduced i
 cat ../standard_json_example.json | ./build/solc/solc --standard-json
 ```
 
+## Disable the full inliner side effects safeguard
+(per this old [bug](https://soliditylang.org/blog/2023/07/19/full-inliner-non-expression-split-argument-evaluation-order-bug/))
+
+```bash
+./disable_full_inliner_side_effects_safeguard.sh apply
+```
+
+
+```bash
+./solidity/build/solc/solc --optimize --strict-assembly inliner_test.sol --ir-optimized --bin
+```
+
+Does not match the same behavior as 
+
+```bash
+./solidity/build/solc/solc --yul-optimizations="i" --optimize --strict-assembly inliner_test.sol --ir-optimized --bin
+```
+
 ## on demand lsp (wip)
 ```bash
 ./scripts/build.sh  && cat ../lsp_example.json |  build/solc/solc  --lspio 
